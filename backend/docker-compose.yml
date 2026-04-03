@@ -1,36 +1,34 @@
 version: '3.9'
+
+# Firebase cloud'da oldugu icin yerel DB container'a gerek yok.
+# Tek servis: FastAPI
+
 services:
   api:
-    build: .
-    ports: ['8000:8000']
-    env_file: [.env]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: projem-api
+    ports:
+      - '8000:8000'
+    env_file:
+      - .env
     volumes:
+      # service-account.json'u container icine salt-okunur bagla
+      # FIREBASE_CREDENTIALS_PATH=/run/secrets/firebase ile de yapilabilir
       - ./service-account.json:/app/service-account.json:ro
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
+      # Gelistirme sirasinda kod degisikliklerini aninda yansit
+      - .:/app
     restart: unless-stopped
-
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: projem_db
-    ports: ['5432:5432']
-    volumes: [postgres_data:/var/lib/postgresql/data]
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
-  redis:
-    image: redis:7-alpine
-    ports: ['6379:6379']
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
+  # Ileride BERT / video servisi eklemek icin ornek (simdilik yorum satiri)
+  # nlp:
+  #   build: ./services/nlp
+  #   ports: ['8001:8001']
+  #   restart: unless-stopped

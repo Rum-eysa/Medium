@@ -1,60 +1,84 @@
-import uuid
 from typing import Optional, List
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timezone
 
-from app.services.base import BaseService
-from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate
+from google.cloud.firestore_v1.async_client import AsyncClient
+
+from app.services.base import BaseCRUDService
+from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.core.config import settings
 from app.core.exceptions import NotFoundException
 
 
-class UserService(BaseService[User, UserCreate, UserUpdate]):
+class UserService(BaseCRUDService):
+    """
+    Firestore uzerinde async kullanici CRUD islemleri.
+    Koleksiyon adi .env'deki FIRESTORE_USERS_COLLECTION ile belirlenir.
+    """
 
-    def __init__(self, db: AsyncSession):
-        super().__init__(db)
+    def __init__(self, db: AsyncClient):
+        self._col = db.collection(settings.FIRESTORE_USERS_COLLECTION)
 
-    async def get_by_id(self, id: str) -> Optional[User]:
-        r = await self.db.execute(select(User).where(User.id == id))
-        return r.scalar_one_or_none()
+    # ── Okuma ────────────────────────────────────────────────────────────────
 
-    async def get_by_firebase_uid(self, uid: str) -> Optional[User]:
-        r = await self.db.execute(select(User).where(User.firebase_uid == uid))
-        return r.scalar_one_or_none()
+    async def get_by_id(self, id: str) -> Optional[UserRead]:
+        doc = await self._col.document(id).get()
+        if not doc.exists:
+            return None
+        return UserRead.from_firestore(doc.id, doc.to_dict())
 
-    async def get_all(self, skip: int = 0, limit: int = 20) -> List[User]:
-        r = await self.db.execute(select(User).offset(skip).limit(limit))
-        return list(r.scalars().all())
+    async def get_by_firebase_uid(self, uid: str) -> Optional[UserRead]:
+        """Dokuman ID'si firebase_uid ile esit — direkt fetch."""
+        return await self.get_by_id(uid)
 
-    async def create(self, schema: UserCreate) -> User:
-        user = User(
-            id=str(uuid.uuid4()),
-            firebase_uid=schema.firebase_uid,
-            email=schema.email,
-            display_name=schema.display_name,
-            photo_url=schema.photo_url,
-        )
-        self.db.add(user)
-        await self.db.flush()
-        return user
+    async def get_all(self, limit: int = 20) -> List[UserRead]:
+        docs = self._col.limit(limit).stream()
+        return [
+            UserRead.from_firestore(doc.id, doc.to_dict())
+            async for doc in docs
+        ]
 
-    async def update(self, id: str, schema: UserUpdate) -> Optional[User]:
-        user = await self.get_by_id(id)
-        if not user:
+    # ── Yazma ────────────────────────────────────────────────────────────────
+
+    async def create(self, schema: UserCreate) -> UserRead:
+        """Dokuman ID = firebase_uid (ek sorgu gerektirmez)."""
+        now = datetime.now(timezone.utc)
+        data = {
+            "firebase_uid": schema.firebase_uid,
+            "email": schema.email,
+            "display_name": schema.display_name,
+            "photo_url": schema.photo_url,
+            "is_active": True,
+            "created_at": now,
+            "updated_at": None,
+        }
+        await self._col.document(schema.firebase_uid).set(data)
+        return UserRead.from_firestore(schema.firebase_uid, data)
+
+    async def update(self, id: str, schema: UserUpdate) -> Optional[UserRead]:
+        ref = self._col.document(id)
+        doc = await ref.get()
+        if not doc.exists:
             raise NotFoundException("Kullanici", id)
-        for field, value in schema.model_dump(exclude_none=True).items():
-            setattr(user, field, value)
-        await self.db.flush()
-        return user
+        updates = {
+            k: v for k, v in schema.model_dump(exclude_none=True).items()
+        }
+        updates["updated_at"] = datetime.now(timezone.utc)
+        await ref.update(updates)
+        updated = await ref.get()
+        return UserRead.from_firestore(updated.id, updated.to_dict())
 
     async def delete(self, id: str) -> bool:
-        user = await self.get_by_id(id)
-        if not user:
+        ref = self._col.document(id)
+        doc = await ref.get()
+        if not doc.exists:
             return False
-        await self.db.delete(user)
+        await ref.delete()
         return True
 
-    async def get_or_create_by_firebase_uid(self, uid: str, email: str) -> User:
+    # ── Yardimci ─────────────────────────────────────────────────────────────
+
+    async def get_or_create(self, uid: str, email: str) -> UserRead:
+        """Token dogrulamasinin hemen ardindan kullaniciyi getir veya olustur."""
         user = await self.get_by_firebase_uid(uid)
         if not user:
             user = await self.create(UserCreate(firebase_uid=uid, email=email))

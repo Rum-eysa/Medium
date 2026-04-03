@@ -1,30 +1,38 @@
 from typing import Annotated
 from fastapi import Depends, Header
-from sqlalchemy.ext.asyncio import AsyncSession
+from google.cloud.firestore_v1.async_client import AsyncClient
 
-from app.core.database import get_db_session
+from app.core.firebase import get_firestore
 from app.core.exceptions import UnauthorizedException
 from app.services.auth_service import AuthService
 from app.services.user_service import UserService
 from app.schemas.user import UserRead
 
 _auth_service = AuthService()
-DBSession = Annotated[AsyncSession, Depends(get_db_session)]
+
+# Firestore client — her istek icin ayni instance (singleton)
+FirestoreDB = Annotated[AsyncClient, Depends(get_firestore)]
 
 
 async def get_current_user(
     authorization: Annotated[str | None, Header()] = None,
-    db: DBSession = None,
+    db: FirestoreDB = None,
 ) -> UserRead:
+    """
+    Bearer token dogrular, Firestore'dan kullaniciyi getirir/olusturur.
+    Flutter: Dio interceptor her istekte Authorization header ekler.
+    """
     if not authorization or not authorization.startswith("Bearer "):
         raise UnauthorizedException("MISSING_TOKEN", "Kimlik dogrulama tokeni eksik.")
+
     token = authorization.removeprefix("Bearer ").strip()
     decoded = await _auth_service.verify_token(token)
+
     svc = UserService(db)
-    user = await svc.get_or_create_by_firebase_uid(
-        uid=decoded["uid"], email=decoded.get("email", "")
+    return await svc.get_or_create(
+        uid=decoded["uid"],
+        email=decoded.get("email", ""),
     )
-    return UserRead.model_validate(user)
 
 
-CurrentUser = Annotated[UserRead, Depends(get_current_user)]
+CurrentUser   = Annotated[UserRead, Depends(get_current_user)]

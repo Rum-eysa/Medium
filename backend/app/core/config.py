@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator
 from typing import List
 
 
@@ -15,19 +14,14 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     API_V1_STR: str = "/api/v1"
 
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/myapp"
+    # Firebase / Firestore
     FIREBASE_CREDENTIALS_PATH: str = "service-account.json"
     FIREBASE_PROJECT_ID: str = "your-project-id"
-    REDIS_URL: str = "redis://localhost:6379"
+    FIRESTORE_USERS_COLLECTION: str = "users"
+
+    # CORS
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
-
-    @field_validator("DATABASE_URL")
-    @classmethod
-    def validate_db_url(cls, v: str) -> str:
-        if not v.startswith("postgresql+asyncpg"):
-            raise ValueError("Async surucu (asyncpg) zorunludur.")
-        return v
 
 
 settings = Settings()

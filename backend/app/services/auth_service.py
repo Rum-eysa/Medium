@@ -4,6 +4,11 @@ from app.core.exceptions import UnauthorizedException
 
 
 class AuthService:
+    """
+    Firebase Auth token dogrulama.
+    Senkron SDK cagrisi thread pool'da calisir — event loop bloke olmaz.
+    """
+
     async def verify_token(self, token: str) -> dict:
         loop = asyncio.get_event_loop()
         try:

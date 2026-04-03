@@ -1,62 +1,75 @@
 # projem
 
-Solo gelistirici monorepo — FastAPI backend + Flutter frontend.
+Solo gelistirici monorepo — FastAPI + Firestore + Flutter/GetX
 
-## Yapı
+## Mimari
 
 \\\
 projem/
-├── backend/          FastAPI (Python)
+├── backend/
 │   ├── app/
-│   │   ├── core/     Config, DB, Firebase, Exceptions
-│   │   ├── api/      Router, Middleware, Depends
-│   │   ├── schemas/  Pydantic v2 (Flutter model mirror)
-│   │   ├── models/   SQLAlchemy ORM
-│   │   └── services/ Is mantigi + AI/Video plug-in ABC
-│   ├── tests/
-│   ├── scripts/      Gelistirici yardimci scriptleri
+│   │   ├── core/         Config, Firebase/Firestore init, Exceptions
+│   │   ├── api/          Router, Middleware, Depends (Firestore inject)
+│   │   ├── schemas/      Pydantic v2 — Flutter model mirror
+│   │   └── services/     Firestore CRUD + AI/Video plug-in ABC
+│   ├── scripts/          Gelistirici kısayolları
 │   ├── Dockerfile
-│   ├── docker-compose.yml
+│   ├── docker-compose.yml        (gelistirme)
+│   ├── docker-compose.prod.yml   (production override)
 │   └── main.py
-└── frontend/         Flutter (Dart)
+└── frontend/
     └── lib/
-        ├── core/     ApiClient, Envelope, Constants, Error
-        └── features/
-            └── auth/ UserModel, AuthController, LoginView
+        ├── core/          ApiClient, Envelope, Constants
+        └── features/auth/ UserModel, AuthController, LoginView
 \\\
 
 ## Hizli Baslangic
 
-### Backend (gelistirme)
-\\\powershell
-cd backend
-.\.venv\Scripts\activate
-uvicorn main:app --reload --port 8000
-# veya: .\scripts\dev.ps1
+### 1. Firebase service-account.json'u al
+Firebase Console > Proje Ayarları > Hizmet Hesaplari > Yeni Anahtar Olustur > JSON
+
+Dosyayi buraya koy: \ackend/service-account.json\
+
+### 2. .env'i duzenle
+\\\
+backend/.env icindeki FIREBASE_PROJECT_ID'yi guncelle
 \\\
 
-### Backend (Docker — production benzeri)
+### 3. Docker ile baslat (onerilir)
 \\\powershell
 cd backend
-docker-compose up --build
+.\scripts\docker-dev.ps1
 \\\
 
-### Frontend
+### 4. API dokumantasyonu
+http://localhost:8000/docs
+
+### 5. Flutter baslat
 \\\powershell
 cd frontend
-flutter pub get
-flutter run
+flutter pub get && flutter run
 \\\
 
-## Ortam Degiskenleri
+## Docker Komutlari
 
-\ackend\.env\ dosyasini duzenle:
+| Komut | Aciklama |
+|-------|---------|
+| \.\scripts\docker-dev.ps1\ | Gelistirme ortami (hot-reload yok, kod mount edilir) |
+| \.\scripts\docker-prod.ps1\ | Production build (4 worker, arka planda) |
+| \.\scripts\docker-stop.ps1\ | Container'i durdur |
+| \.\scripts\docker-logs.ps1\ | Canli log takibi |
+
+## Firestore Koleksiyonlari
+
+| Koleksiyon | Aciklama |
+|-----------|---------|
+| \users\ | Kullanici profilleri (dokuman ID = firebase_uid) |
+
+## Ortam Degiskenleri (backend/.env)
+
 | Degisken | Aciklama |
-|---|---|
-| \DATABASE_URL\ | PostgreSQL async URL |
-| \FIREBASE_CREDENTIALS_PATH\ | service-account.json yolu |
+|---------|---------|
 | \FIREBASE_PROJECT_ID\ | Firebase proje ID |
-
-## API
-
-Gelistirme modunda Swagger UI: http://localhost:8000/docs
+| \FIREBASE_CREDENTIALS_PATH\ | service-account.json yolu |
+| \FIRESTORE_USERS_COLLECTION\ | Kullanici koleksiyon adi |
+| \DEBUG\ | True = Swagger UI aktif |

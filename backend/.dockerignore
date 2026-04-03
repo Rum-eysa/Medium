@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.log
+
+# Gelistirme
+.env
+*.env.*
+!.env.example
+
+# Guvenlik — firebase credentials image'a girmemeli
+service-account.json
+*.json
+
+# Git
+.git/
+.gitignore
+README.md

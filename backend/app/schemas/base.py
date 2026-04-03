@@ -13,8 +13,7 @@ class ErrorDetail(BaseModel):
 class ResponseEnvelope(BaseModel, Generic[T]):
     """
     Tum API yanitlari bu zarf icinde doner.
-    Basari : { "success": true,  "data": {...}, "error": null  }
-    Hata   : { "success": false, "data": null,  "error": {...} }
+    Flutter Dio interceptor bu yapıyı otomatik parse eder.
     """
     model_config = ConfigDict(arbitrary_types_allowed=True)
     success: bool

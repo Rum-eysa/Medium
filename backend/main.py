@@ -6,7 +6,6 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.firebase import initialize_firebase
-from app.core.database import engine, Base
 from app.core.exceptions import AppException
 from app.schemas.base import ResponseEnvelope, ErrorDetail
 from app.api.middleware import timing_middleware
@@ -15,11 +14,10 @@ from app.api.v1 import auth, users
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Baslat: Firebase Admin SDK ve Firestore client hazirla."""
     initialize_firebase()
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     yield
-    await engine.dispose()
+    # Firebase baglantilari otomatik kapanir
 
 
 app = FastAPI(
@@ -47,7 +45,11 @@ async def app_exception_handler(request: Request, exc: AppException):
         status_code=exc.status_code,
         content=ResponseEnvelope(
             success=False,
-            error=ErrorDetail(code=exc.error_code, message=exc.message, details=exc.details),
+            error=ErrorDetail(
+                code=exc.error_code,
+                message=exc.message,
+                details=exc.details,
+            ),
         ).model_dump(),
     )
 
@@ -58,7 +60,10 @@ async def generic_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content=ResponseEnvelope(
             success=False,
-            error=ErrorDetail(code="INTERNAL_SERVER_ERROR", message="Beklenmeyen bir hata olustu."),
+            error=ErrorDetail(
+                code="INTERNAL_SERVER_ERROR",
+                message="Beklenmeyen bir hata olustu.",
+            ),
         ).model_dump(),
     )
 
@@ -69,4 +74,7 @@ app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["u
 
 @app.get("/health", tags=["system"])
 async def health_check():
-    return ResponseEnvelope(success=True, data={"status": "ok", "version": settings.VERSION})
+    return ResponseEnvelope(
+        success=True,
+        data={"status": "ok", "version": settings.VERSION},
+    )
