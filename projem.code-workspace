@@ -1,0 +1,22 @@
+{
+  "folders": [
+    { "name": "Backend (FastAPI)", "path": "./backend" },
+    { "name": "Frontend (Flutter)", "path": "./frontend" }
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "\\\.venv\\Scripts\\python.exe",
+    "editor.formatOnSave": true,
+    "editor.rulers": [88],
+    "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" },
+    "[dart]": { "editor.defaultFormatter": "Dart-Code.dart-code" }
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "charliermarsh.ruff",
+      "Dart-Code.flutter",
+      "Dart-Code.dart-code",
+      "humao.rest-client"
+    ]
+  }
+}

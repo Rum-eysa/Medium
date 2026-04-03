@@ -1,0 +1,9 @@
+from abc import ABC, abstractmethod
+
+class BaseNLPService(ABC):
+    @abstractmethod
+    async def analyze_text(self, text: str) -> dict: ...
+    @abstractmethod
+    async def embed(self, text: str) -> list[float]: ...
+    @abstractmethod
+    async def classify(self, text: str, labels: list[str]) -> dict: ...

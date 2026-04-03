@@ -1,0 +1,9 @@
+from abc import ABC, abstractmethod
+
+class BaseVideoService(ABC):
+    @abstractmethod
+    async def process_frame(self, frame_bytes: bytes) -> dict: ...
+    @abstractmethod
+    async def start_stream(self, session_id: str) -> None: ...
+    @abstractmethod
+    async def stop_stream(self, session_id: str) -> None: ...
