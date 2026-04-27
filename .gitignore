@@ -43,3 +43,5 @@ htmlcov/
 ._*
 desktop.ini
 ehthumbs.db
+
+service-account.json
