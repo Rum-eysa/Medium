@@ -12,7 +12,6 @@ services:
       - .env
     volumes:
       - ./packages/api/service-account.json:/app/service-account.json:ro
-      - ./packages/api:/app
     depends_on:
       db:
         condition: service_healthy
