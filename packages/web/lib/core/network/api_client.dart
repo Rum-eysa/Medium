@@ -1,93 +1,150 @@
-import "package:dio/dio.dart";
-import "package:firebase_auth/firebase_auth.dart";
-import "package:get/get.dart" hide Response;
-import "../constants/api_constants.dart";
+import 'package:dio/dio.dart' as dio;
+import 'package:get/get.dart' hide Response;
+import '../config/app_config.dart';
+import '../services/secure_storage_service.dart';
+import 'package:flutter/material.dart';
 
 class ApiClient {
-  late final Dio dio;
+  static final ApiClient _instance = ApiClient._internal();
 
-  ApiClient() {
-    dio = Dio(
-      BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 30),
-        headers: {"Content-Type": "application/json"},
+  factory ApiClient() {
+    return _instance;
+  }
+
+  late dio.Dio _dio;
+  // ignore: unused_field
+  final _storage = SecureStorageService();
+
+  ApiClient._internal() {
+    _dio = dio.Dio(
+      dio.BaseOptions(
+        baseUrl: AppConfig.apiBaseUrl,
+        connectTimeout: const Duration(milliseconds: AppConfig.requestTimeout),
+        receiveTimeout: const Duration(milliseconds: AppConfig.requestTimeout),
       ),
     );
-    dio.interceptors.addAll([
-      _AuthInterceptor(),
-      _EnvelopeInterceptor(),
-      if (!const bool.fromEnvironment("dart.vm.product"))
-        LogInterceptor(requestBody: true, responseBody: true),
-    ]);
+
+    _dio.interceptors.add(AuthInterceptor());
+    _dio.interceptors.add(ErrorInterceptor());
+  }
+
+  Future<dio.Response<T>> get<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    return _dio.get(path, queryParameters: queryParameters);
+  }
+
+  Future<dio.Response<T>> post<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    return _dio.post(path, data: data, queryParameters: queryParameters);
+  }
+
+  Future<dio.Response<T>> patch<T>(String path, {dynamic data}) async {
+    return _dio.patch(path, data: data);
+  }
+
+  Future<dio.Response<T>> delete<T>(String path) async {
+    return _dio.delete(path);
+  }
+
+  void setAuthToken(String token) {
+    _dio.options.headers['Authorization'] = 'Bearer $token';
+  }
+
+  void clearAuthToken() {
+    _dio.options.headers.remove('Authorization');
   }
 }
 
-class _AuthInterceptor extends Interceptor {
+class AuthInterceptor extends dio.Interceptor {
+  final _storage = SecureStorageService();
+
   @override
-  Future<void> onRequest(RequestOptions o, RequestInterceptorHandler h) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      o.headers["Authorization"] = "Bearer ${await user.getIdToken()}";
+  Future<void> onRequest(
+    dio.RequestOptions options,
+    dio.RequestInterceptorHandler handler,
+  ) async {
+    final token = await _storage.read(StorageKeys.accessToken);
+    if (token != null) {
+      options.headers['Authorization'] = 'Bearer $token';
     }
-    h.next(o);
+    return handler.next(options);
   }
 
   @override
-  Future<void> onError(DioException err, ErrorInterceptorHandler h) async {
+  Future<void> onError(
+    dio.DioException err,
+    dio.ErrorInterceptorHandler handler,
+  ) async {
     if (err.response?.statusCode == 401) {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
+      final refreshToken = await _storage.read(StorageKeys.refreshToken);
+      if (refreshToken != null) {
         try {
-          final token = await user.getIdToken(true);
-          err.requestOptions.headers["Authorization"] = "Bearer $token";
-          return h.resolve(await Dio().fetch(err.requestOptions));
-        } catch (_) {}
+          final response = await dio.Dio().post(
+            '${AppConfig.apiBaseUrl}${ApiEndpoints.refresh}',
+            data: {'refresh_token': refreshToken},
+          );
+
+          if (response.statusCode == 200) {
+            final data = response.data['data'];
+            await _storage.write(StorageKeys.accessToken, data['access_token']);
+            await _storage.write(
+              StorageKeys.refreshToken,
+              data['refresh_token'],
+            );
+
+            final options = err.requestOptions;
+            options.headers['Authorization'] = 'Bearer ${data['access_token']}';
+
+            final newResponse = await dio.Dio().request(
+              options.path,
+              options: dio.Options(
+                method: options.method,
+                headers: options.headers,
+              ),
+              data: options.data,
+            );
+
+            return handler.resolve(newResponse);
+          }
+        } catch (e) {
+          await _storage.deleteAll();
+          Get.offAllNamed('/login');
+        }
       }
-      await FirebaseAuth.instance.signOut();
-      Get.offAllNamed("/login");
     }
-    h.next(err);
+    return handler.next(err);
   }
 }
 
-class _EnvelopeInterceptor extends Interceptor {
+class ErrorInterceptor extends dio.Interceptor {
   @override
-  void onResponse(Response r, ResponseInterceptorHandler h) {
-    final body = r.data as Map<String, dynamic>?;
-    if (body != null && body["success"] == false) {
-      final e = body["error"] as Map<String, dynamic>?;
-      _snack(
-        e?["code"] as String? ?? "ERROR",
-        e?["message"] as String? ?? "Hata",
-      );
-      return h.reject(
-        DioException(
-          requestOptions: r.requestOptions,
-          response: r,
-          type: DioExceptionType.badResponse,
-        ),
+  Future<void> onError(
+    dio.DioException err,
+    dio.ErrorInterceptorHandler handler,
+  ) async {
+    if (err.response?.statusCode != 401) {
+      final errorMsg = _getErrorMessage(err);
+      Get.snackbar(
+        'Hata',
+        errorMsg,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
       );
     }
-    h.next(r);
+    return handler.next(err);
   }
 
-  @override
-  void onError(DioException err, ErrorInterceptorHandler h) {
-    if (err.type == DioExceptionType.connectionTimeout ||
-        err.type == DioExceptionType.receiveTimeout) {
-      _snack("TIMEOUT", "Baglanti zaman asimina ugradi.");
-    } else if (err.type == DioExceptionType.connectionError) {
-      _snack("NO_NETWORK", "Internet baglantisi yok.");
+  String _getErrorMessage(dio.DioException error) {
+    if (error.response?.data is Map) {
+      final data = error.response!.data as Map;
+      return data['error']?['message'] ?? 'Bilinmeyen hata';
     }
-    h.next(err);
+    return error.message ?? 'Bağlantı hatası';
   }
-
-  void _snack(String code, String msg) => Get.snackbar(
-    "Hata ($code)",
-    msg,
-    snackPosition: SnackPosition.BOTTOM,
-    duration: const Duration(seconds: 3),
-  );
 }
