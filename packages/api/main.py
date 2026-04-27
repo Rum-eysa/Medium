@@ -12,6 +12,7 @@ from app.api.middleware import timing_middleware
 from app.api.v1 import auth, users, articles
 
 import app.models  # noqa: F401
+from app.api.v1 import auth, users, articles, comments, notifications, reading_list, search
 
 
 @asynccontextmanager
@@ -73,7 +74,10 @@ async def generic_exception_handler(request: Request, exc: Exception):
 app.include_router(auth.router,     prefix=f"{settings.API_V1_STR}/auth",     tags=["auth"])
 app.include_router(users.router,    prefix=f"{settings.API_V1_STR}/users",    tags=["users"])
 app.include_router(articles.router, prefix=f"{settings.API_V1_STR}/articles", tags=["articles"])
-
+app.include_router(comments.router,     prefix=f"{settings.API_V1_STR}/articles", tags=["comments"])
+app.include_router(notifications.router, prefix=f"{settings.API_V1_STR}/notifications", tags=["notifications"])
+app.include_router(reading_list.router,  prefix=f"{settings.API_V1_STR}/reading-list", tags=["reading-list"])
+app.include_router(search.router,        prefix=f"{settings.API_V1_STR}/search", tags=["search"])
 
 @app.get("/health", tags=["system"])
 async def health_check():
