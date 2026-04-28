@@ -4,7 +4,7 @@ import '../../articles/controllers/article_controller.dart';
 import '../../articles/views/article_list_view.dart';
 
 class HomeView extends GetView<ArticleController> {
-  const HomeView({Key? key}) : super(key: key);
+  const HomeView({super.key});
 
   @override
   Widget build(BuildContext context) {

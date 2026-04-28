@@ -9,10 +9,9 @@ from app.core.database import engine, Base
 from app.core.exceptions import AppException
 from app.schemas.base import ResponseEnvelope, ErrorDetail
 from app.api.middleware import timing_middleware
-from app.api.v1 import auth, users, articles
+from app.api.v1 import auth, users, articles, comments, notifications, reading_list, search
 
 import app.models  # noqa: F401
-from app.api.v1 import auth, users, articles, comments, notifications, reading_list, search
 
 
 @asynccontextmanager
@@ -34,7 +33,21 @@ app = FastAPI(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5000",
+        "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5000",
+        "http://127.0.0.1:8000",
+        "http://localhost:50423",
+        "http://127.0.0.1:50423",
+        "http://localhost:53502",
+        "http://127.0.0.1:53502",
+        "http://localhost:64291",
+        "http://127.0.0.1:64291",
+        "*",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -78,6 +91,7 @@ app.include_router(comments.router,     prefix=f"{settings.API_V1_STR}/articles"
 app.include_router(notifications.router, prefix=f"{settings.API_V1_STR}/notifications", tags=["notifications"])
 app.include_router(reading_list.router,  prefix=f"{settings.API_V1_STR}/reading-list", tags=["reading-list"])
 app.include_router(search.router,        prefix=f"{settings.API_V1_STR}/search", tags=["search"])
+
 
 @app.get("/health", tags=["system"])
 async def health_check():

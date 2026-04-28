@@ -1,9 +1,10 @@
+// ── register_view.dart ────────────────────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
 
 class RegisterView extends StatefulWidget {
-  const RegisterView({Key? key}) : super(key: key);
+  const RegisterView({super.key});
 
   @override
   State<RegisterView> createState() => _RegisterViewState();
@@ -47,23 +48,25 @@ class _RegisterViewState extends State<RegisterView> {
                 decoration: const InputDecoration(labelText: 'Şifre'),
               ),
               const SizedBox(height: 24),
-              Obx(() => ElevatedButton(
-                onPressed: authCtrl.isLoading.value
-                    ? null
-                    : () => authCtrl.register(
-                      email: emailCtrl.text,
-                      username: usernameCtrl.text,
-                      password: passwordCtrl.text,
-                      displayName: nameCtrl.text,
-                    ),
-                child: authCtrl.isLoading.value
-                    ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                    : const Text('Kayıt Ol'),
-              )),
+              Obx(
+                () => ElevatedButton(
+                  onPressed: authCtrl.isLoading.value
+                      ? null
+                      : () => authCtrl.register(
+                          email: emailCtrl.text,
+                          username: usernameCtrl.text,
+                          password: passwordCtrl.text,
+                          displayName: nameCtrl.text,
+                        ),
+                  child: authCtrl.isLoading.value
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Kayıt Ol'),
+                ),
+              ),
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => Get.toNamed('/login'),

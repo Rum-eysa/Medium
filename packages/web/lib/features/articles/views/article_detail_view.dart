@@ -4,7 +4,7 @@ import '../controllers/article_controller.dart';
 import '../models/article_model.dart';
 
 class ArticleDetailView extends StatefulWidget {
-  const ArticleDetailView({Key? key}) : super(key: key);
+  const ArticleDetailView({super.key});
 
   @override
   State<ArticleDetailView> createState() => _ArticleDetailViewState();
@@ -26,14 +26,8 @@ class _ArticleDetailViewState extends State<ArticleDetailView> {
       appBar: AppBar(
         title: const Text('Makale'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.bookmark_border),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: () {},
-          ),
+          IconButton(icon: const Icon(Icons.bookmark_border), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.share), onPressed: () {}),
         ],
       ),
       body: FutureBuilder<ArticleModel?>(
@@ -75,7 +69,10 @@ class _ArticleDetailViewState extends State<ArticleDetailView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(article.author.displayName ?? article.author.username),
+                            Text(
+                              article.author.displayName ??
+                                  article.author.username,
+                            ),
                             Text('${article.readingTimeMinutes} min read'),
                           ],
                         ),

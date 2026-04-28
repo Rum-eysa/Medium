@@ -5,7 +5,7 @@ import '../controllers/article_controller.dart';
 import '../models/article_model.dart';
 
 class ArticleListView extends GetView<ArticleController> {
-  const ArticleListView({Key? key}) : super(key: key);
+  const ArticleListView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +13,7 @@ class ArticleListView extends GetView<ArticleController> {
       if (controller.isLoading.value && controller.articles.isEmpty) {
         return ListView.builder(
           itemCount: 5,
-          itemBuilder: (_, __) => Shimmer.fromColors(
+          itemBuilder: (_, _) => Shimmer.fromColors(
             baseColor: Colors.grey[300]!,
             highlightColor: Colors.grey[100]!,
             child: Padding(
@@ -21,10 +21,7 @@ class ArticleListView extends GetView<ArticleController> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    height: 200,
-                    color: Colors.grey,
-                  ),
+                  Container(height: 200, color: Colors.grey),
                   const SizedBox(height: 8),
                   Container(height: 16, color: Colors.grey),
                   const SizedBox(height: 8),
@@ -38,9 +35,8 @@ class ArticleListView extends GetView<ArticleController> {
 
       return ListView.builder(
         itemCount: controller.articles.length,
-        itemBuilder: (_, index) => ArticleCard(
-          article: controller.articles[index],
-        ),
+        itemBuilder: (_, index) =>
+            ArticleCard(article: controller.articles[index]),
       );
     });
   }
@@ -49,7 +45,7 @@ class ArticleListView extends GetView<ArticleController> {
 class ArticleCard extends StatelessWidget {
   final ArticleModel article;
 
-  const ArticleCard({Key? key, required this.article}) : super(key: key);
+  const ArticleCard({super.key, required this.article});
 
   @override
   Widget build(BuildContext context) {
@@ -89,16 +85,20 @@ class ArticleCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(article.author.displayName ?? article.author.username),
-                        Text('${article.readingTimeMinutes} min read',
-                            style: Theme.of(context).textTheme.bodySmall),
+                        Text(
+                          article.author.displayName ?? article.author.username,
+                        ),
+                        Text(
+                          '${article.readingTimeMinutes} min read',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                       ],
                     ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.favorite_border),
-                    onPressed: () => Get.find<ArticleController>()
-                        .clapArticle(article.id),
+                    onPressed: () =>
+                        Get.find<ArticleController>().clapArticle(article.id),
                   ),
                   Text('${article.clapCount}'),
                 ],

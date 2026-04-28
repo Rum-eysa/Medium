@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../../auth/controllers/auth_controller.dart';
 
 class ProfileView extends GetView<AuthController> {
-  const ProfileView({Key? key}) : super(key: key);
+  const ProfileView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -46,17 +46,18 @@ class ProfileView extends GetView<AuthController> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                if (user.bio != null)
-                  Text(user.bio!),
+                if (user.bio != null) Text(user.bio!),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => Get.toNamed('/profile-edit'),
                   child: const Text('Profili Düzenle'),
                 ),
                 const SizedBox(height: 16),
-                Text('Makalelerim', style: Theme.of(context).textTheme.headlineSmall),
+                Text(
+                  'Makalelerim',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
                 const SizedBox(height: 8),
-                // Article list here
               ],
             ),
           ),
