@@ -7,16 +7,14 @@ from app.models.article import Article
 from app.schemas.article import ClapResponse
 from app.core.exceptions import NotFoundException
 
-MAX_CLAPS_PER_USER = 50
-
 
 class ClapService:
 
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def clap(self, user_id: str, article_id: str, count: int = 1) -> ClapResponse:
-        """US-014: Makaleye clap ekle (max 50/kullanici)."""
+    async def clap(self, user_id: str, article_id: str) -> ClapResponse:
+        """US-014: Kullanici makaleyi bir kez alkislar; tekrar basarsa geri alir."""
         # Makale var mi?
         article = await self.db.get(Article, article_id)
         if not article:
@@ -32,29 +30,29 @@ class ClapService:
         clap = r.scalar_one_or_none()
 
         if clap:
-            # Mevcut kaydi guncelle (max 50)
-            new_count = min(clap.count + count, MAX_CLAPS_PER_USER)
-            added = new_count - clap.count
-            clap.count = new_count
+            await self.db.delete(clap)
+            article.clap_count = max(article.clap_count - 1, 0)
+            user_clap_count = 0
+            is_clapped = False
         else:
-            # Yeni kayit olustur
-            added = min(count, MAX_CLAPS_PER_USER)
             clap = Clap(
                 id=str(uuid.uuid4()),
                 user_id=user_id,
                 article_id=article_id,
-                count=added,
+                count=1,
             )
             self.db.add(clap)
+            article.clap_count += 1
+            user_clap_count = 1
+            is_clapped = True
 
-        # Makale toplam clap sayisini guncelle
-        article.clap_count += added
         await self.db.flush()
 
         return ClapResponse(
             article_id=article_id,
             total_claps=article.clap_count,
-            user_clap_count=clap.count,
+            user_clap_count=user_clap_count,
+            is_clapped=is_clapped,
         )
 
     async def get_user_clap(self, user_id: str, article_id: str) -> int:

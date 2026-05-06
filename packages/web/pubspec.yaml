@@ -16,6 +16,7 @@ dependencies:
   get: ^4.7.3
   flutter_secure_storage: ^10.0.0
   awesome_notifications: ^0.11.0
+  get_storage: ^2.1.1  # ← EKLE (Theme persistence için)
   intl: ^0.20.2
   timeago: ^3.6.0
   shimmer: ^3.0.0

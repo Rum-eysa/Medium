@@ -3,15 +3,18 @@ import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/response_envelope.dart';
 import '../../../core/services/secure_storage_service.dart';
-import '../models/user_model.dart';
+import '../models/user_model.dart' hide TokenResponse;
 
 class AuthController extends GetxController {
   final _apiClient = ApiClient();
   final _storage = SecureStorageService();
 
   final isLoading = false.obs;
+  final isPasswordResetLoading = false.obs;
   final currentUser = Rx<UserModel?>(null);
   final isAuthenticated = false.obs;
+  final resetEmailSent = false.obs;
+  final passwordResetSuccess = false.obs;
 
   @override
   Future<void> onInit() async {
@@ -27,6 +30,8 @@ class AuthController extends GetxController {
     }
   }
 
+  // ─── US-001 Register ────────────────────────────────────────────────────────
+
   Future<void> register({
     required String email,
     required String username,
@@ -41,7 +46,8 @@ class AuthController extends GetxController {
           'email': email,
           'username': username,
           'password': password,
-          'display_name': displayName,
+          if (displayName != null && displayName.isNotEmpty)
+            'display_name': displayName,
         },
       );
 
@@ -57,24 +63,20 @@ class AuthController extends GetxController {
         Get.offAllNamed('/home');
       }
     } catch (e) {
-      Get.snackbar('Kayıt Hatası', 'Lütfen bilgilerinizi kontrol edin.');
+      // ErrorInterceptor snackbar'ı zaten gösteriyor
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<void> login({
-    required String email,
-    required String password,
-  }) async {
+  // ─── US-002 Login ────────────────────────────────────────────────────────────
+
+  Future<void> login({required String email, required String password}) async {
     try {
       isLoading.value = true;
       final response = await _apiClient.post(
         ApiEndpoints.login,
-        data: {
-          'email': email,
-          'password': password,
-        },
+        data: {'email': email, 'password': password},
       );
 
       final envelope = ResponseEnvelope<TokenResponse>.fromJson(
@@ -89,11 +91,66 @@ class AuthController extends GetxController {
         Get.offAllNamed('/home');
       }
     } catch (e) {
-      Get.snackbar('Giriş Hatası', 'E-posta veya şifre yanlış.');
+      // ErrorInterceptor handle ediyor
     } finally {
       isLoading.value = false;
     }
   }
+
+  // ─── US-003 Forgot Password ──────────────────────────────────────────────────
+
+  Future<void> forgotPassword({required String email}) async {
+    try {
+      isPasswordResetLoading.value = true;
+      final response = await _apiClient.post(
+        ApiEndpoints.forgotPassword,
+        data: {'email': email},
+      );
+
+      final envelope = ResponseEnvelope<Map<String, dynamic>>.fromJson(
+        response.data,
+        (json) => json as Map<String, dynamic>,
+      );
+
+      if (envelope.success) {
+        resetEmailSent.value = true;
+      }
+    } catch (e) {
+      // ErrorInterceptor handle ediyor
+    } finally {
+      isPasswordResetLoading.value = false;
+    }
+  }
+
+  // ─── US-003 Reset Password ────────────────────────────────────────────────────
+
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      isPasswordResetLoading.value = true;
+      final response = await _apiClient.post(
+        ApiEndpoints.resetPassword,
+        data: {'token': token, 'new_password': newPassword},
+      );
+
+      final envelope = ResponseEnvelope<Map<String, dynamic>>.fromJson(
+        response.data,
+        (json) => json as Map<String, dynamic>,
+      );
+
+      if (envelope.success) {
+        passwordResetSuccess.value = true;
+      }
+    } catch (e) {
+      // ErrorInterceptor handle ediyor
+    } finally {
+      isPasswordResetLoading.value = false;
+    }
+  }
+
+  // ─── US-004 Logout ────────────────────────────────────────────────────────────
 
   Future<void> logout() async {
     try {
@@ -104,15 +161,32 @@ class AuthController extends GetxController {
           data: {'refresh_token': refreshToken},
         );
       }
-      await _storage.deleteAll();
-      _apiClient.clearAuthToken();
-      currentUser.value = null;
-      isAuthenticated.value = false;
-      Get.offAllNamed('/login');
-    } catch (e) {
-      Get.snackbar('Çıkış Hatası', 'Bir hata oluştu.');
+    } catch (_) {
+    } finally {
+      await _clearSession();
     }
   }
+
+  Future<void> logoutAll() async {
+    try {
+      await _apiClient.post(ApiEndpoints.logoutAll);
+    } catch (_) {
+    } finally {
+      await _clearSession();
+    }
+  }
+
+  Future<void> _clearSession() async {
+    await _storage.deleteAll();
+    _apiClient.clearAuthToken();
+    currentUser.value = null;
+    isAuthenticated.value = false;
+    resetEmailSent.value = false;
+    passwordResetSuccess.value = false;
+    Get.offAllNamed('/login');
+  }
+
+  // ─── Get Me ───────────────────────────────────────────────────────────────────
 
   Future<void> _fetchCurrentUser() async {
     try {
@@ -121,13 +195,12 @@ class AuthController extends GetxController {
         response.data,
         (json) => UserModel.fromJson(json),
       );
-
       if (envelope.success && envelope.data != null) {
         currentUser.value = envelope.data!;
         isAuthenticated.value = true;
       }
-    } catch (e) {
-      await logout();
+    } catch (_) {
+      await _clearSession();
     }
   }
 

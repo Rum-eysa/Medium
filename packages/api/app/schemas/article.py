@@ -97,6 +97,7 @@ class ClapResponse(BaseModel):
     article_id: str
     total_claps: int
     user_clap_count: int
+    is_clapped: bool
 
 
 class FollowResponse(BaseModel):

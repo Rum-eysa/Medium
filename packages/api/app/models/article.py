@@ -56,3 +56,6 @@ class Article(Base):
     claps: Mapped[list["Clap"]] = relationship(
         back_populates="article", cascade="all, delete-orphan"
     )
+    comments: Mapped[list["Comment"]] = relationship(
+        back_populates="article", cascade="all, delete-orphan"
+    )

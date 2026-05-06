@@ -137,12 +137,9 @@ async def clap_article(
     article_id: str,
     current_user: CurrentUser,
     db: DBSession,
-    count: int = Query(1, ge=1, le=10, description="Bir seferde max 10 clap"),
 ):
     svc = ClapService(db)
-    result = await svc.clap(
-        user_id=current_user.id, article_id=article_id, count=count
-    )
+    result = await svc.clap(user_id=current_user.id, article_id=article_id)
     return ok(result)
 
 
