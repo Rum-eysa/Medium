@@ -121,10 +121,8 @@ class ArticleCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (coverImageUrl != null || true) ...[
-                  const SizedBox(width: 16),
-                  _CoverImage(imageUrl: coverImageUrl),
-                ],
+                const SizedBox(width: 16),
+                _CoverImage(imageUrl: coverImageUrl),
               ],
             ),
             const SizedBox(height: 12),

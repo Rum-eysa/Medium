@@ -42,6 +42,10 @@ class ArticleModel {
     bool? isBookmarked,
     int? clapCount,
     bool? isClapped,
+    bool? isMemberOnly,
+    String? coverImageUrl,
+    String? authorImageUrl,
+    DateTime? publishedAt,
   }) => ArticleModel(
     id: id,
     title: title,
@@ -53,12 +57,50 @@ class ArticleModel {
     tag: tag,
     clapCount: clapCount ?? this.clapCount,
     isClapped: isClapped ?? this.isClapped,
-    isMemberOnly: isMemberOnly,
+    isMemberOnly: isMemberOnly ?? this.isMemberOnly,
     isBookmarked: isBookmarked ?? this.isBookmarked,
-    coverImageUrl: coverImageUrl,
-    authorImageUrl: authorImageUrl,
-    publishedAt: publishedAt,
+    coverImageUrl: coverImageUrl ?? this.coverImageUrl,
+    authorImageUrl: authorImageUrl ?? this.authorImageUrl,
+    publishedAt: publishedAt ?? this.publishedAt,
   );
+
+  factory ArticleModel.fromJson(Map<String, dynamic> json) {
+    final author = json['author'] as Map<String, dynamic>?;
+    final authorName =
+        author?['display_name'] ?? author?['username'] ?? 'Yazar';
+    final authorInitials = authorName
+        .split(' ')
+        .map((part) => part.isNotEmpty ? part[0] : '')
+        .take(2)
+        .join()
+        .toUpperCase();
+
+    return ArticleModel(
+      id: json['id']?.toString() ?? '',
+      title: json['title'] ?? '',
+      subtitle: json['subtitle'] ?? '',
+      authorId: author?['id']?.toString() ?? '',
+      authorName: authorName,
+      authorInitials: authorInitials.isNotEmpty ? authorInitials : 'Y',
+      readingMinutes: json['reading_time_minutes'] is int
+          ? json['reading_time_minutes']
+          : int.tryParse(json['reading_time_minutes']?.toString() ?? '') ?? 1,
+      tag: (json['tags'] is List && (json['tags'] as List).isNotEmpty)
+          ? (json['tags'] as List).first['name']?.toString()
+          : null,
+      clapCount: json['clap_count'] is int
+          ? json['clap_count']
+          : int.tryParse(json['clap_count']?.toString() ?? '') ?? 0,
+      isMemberOnly:
+          json['is_member_only'] == true || json['status'] == 'member',
+      isBookmarked: json['is_bookmarked'] == true,
+      coverImageUrl: json['cover_image_url'] ?? json['coverUrl'],
+      authorImageUrl: author?['photo_url'],
+      publishedAt: json['published_at'] != null
+          ? DateTime.tryParse(json['published_at'].toString())
+          : null,
+    );
+  }
 
   // Mock data factory
   static List<ArticleModel> mockFeed() => [
@@ -73,6 +115,8 @@ class ArticleModel {
       readingMinutes: 4,
       tag: 'Flutter',
       clapCount: 142,
+      coverImageUrl: 'https://picsum.photos/seed/flutter1/320/220',
+      authorImageUrl: 'https://i.pravatar.cc/150?img=12',
       publishedAt: DateTime.now().subtract(const Duration(hours: 3)),
     ),
     ArticleModel(
@@ -87,6 +131,8 @@ class ArticleModel {
       tag: 'Dart',
       clapCount: 89,
       isMemberOnly: true,
+      coverImageUrl: 'https://picsum.photos/seed/dart2/320/220',
+      authorImageUrl: 'https://i.pravatar.cc/150?img=35',
       publishedAt: DateTime.now().subtract(const Duration(hours: 8)),
     ),
     ArticleModel(
@@ -100,6 +146,8 @@ class ArticleModel {
       readingMinutes: 5,
       tag: 'AI',
       clapCount: 203,
+      coverImageUrl: 'https://picsum.photos/seed/ai3/320/220',
+      authorImageUrl: 'https://i.pravatar.cc/150?img=17',
       publishedAt: DateTime.now().subtract(const Duration(days: 1)),
     ),
     ArticleModel(
@@ -112,6 +160,8 @@ class ArticleModel {
       readingMinutes: 6,
       tag: 'Backend',
       clapCount: 67,
+      coverImageUrl: 'https://picsum.photos/seed/backend4/320/220',
+      authorImageUrl: 'https://i.pravatar.cc/150?img=49',
       publishedAt: DateTime.now().subtract(const Duration(days: 2)),
     ),
     ArticleModel(
@@ -125,6 +175,8 @@ class ArticleModel {
       tag: 'Flutter',
       clapCount: 311,
       isMemberOnly: true,
+      coverImageUrl: 'https://picsum.photos/seed/flutter5/320/220',
+      authorImageUrl: 'https://i.pravatar.cc/150?img=63',
       publishedAt: DateTime.now().subtract(const Duration(days: 3)),
     ),
   ];

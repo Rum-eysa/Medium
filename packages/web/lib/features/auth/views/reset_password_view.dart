@@ -3,85 +3,45 @@ import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
 import '../views/_auth_shared_widgets.dart';
 
-class ResetPasswordView extends GetView<AuthController> {
+class ResetPasswordView extends StatefulWidget {
   final String? token; // deep link ile gelebilir
   const ResetPasswordView({super.key, this.token});
 
   @override
-  Widget build(BuildContext context) {
-    final tokenCtrl = TextEditingController(text: token ?? '');
-    final passCtrl = TextEditingController();
-    final confirmCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    final passStrength = 0.obs;
+  State<ResetPasswordView> createState() => _ResetPasswordViewState();
+}
 
-    controller.passwordResetSuccess.value = false;
+class _ResetPasswordViewState extends State<ResetPasswordView> {
+  final _formKey = GlobalKey<FormState>();
+  final _controller = Get.find<AuthController>();
+  late final TextEditingController _tokenController;
+  late final TextEditingController _passController;
+  late final TextEditingController _confirmController;
+  int _passStrength = 0;
 
-    passCtrl.addListener(() {
-      passStrength.value = _calcStrength(passCtrl.text);
+  @override
+  void initState() {
+    super.initState();
+    _tokenController = TextEditingController(text: widget.token ?? '');
+    _passController = TextEditingController();
+    _confirmController = TextEditingController();
+    _passController.addListener(_updateStrength);
+    _controller.passwordResetSuccess.value = false;
+  }
+
+  @override
+  void dispose() {
+    _passController.removeListener(_updateStrength);
+    _tokenController.dispose();
+    _passController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  void _updateStrength() {
+    setState(() {
+      _passStrength = _calcStrength(_passController.text);
     });
-
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0F),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Form(
-            key: formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 24),
-                Obx(
-                  () => controller.passwordResetSuccess.value
-                      ? const SizedBox.shrink()
-                      : GestureDetector(
-                          onTap: () => Get.back(),
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1C1C27),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: const Color(0xFF2A2A3A),
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.arrow_back_rounded,
-                              color: Color(0xFF8B8A9B),
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                ),
-                const SizedBox(height: 32),
-
-                Obx(
-                  () => controller.passwordResetSuccess.value
-                      ? _SuccessView(onLogin: () => Get.offAllNamed('/login'))
-                      : _FormView(
-                          tokenCtrl: tokenCtrl,
-                          passCtrl: passCtrl,
-                          confirmCtrl: confirmCtrl,
-                          passStrength: passStrength,
-                          hasPrefilledToken: token != null,
-                          isLoading: controller.isPasswordResetLoading,
-                          onReset: () {
-                            if (formKey.currentState!.validate()) {
-                              controller.resetPassword(
-                                token: tokenCtrl.text.trim(),
-                                newPassword: passCtrl.text,
-                              );
-                            }
-                          },
-                        ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   int _calcStrength(String pw) {
@@ -92,13 +52,51 @@ class ResetPasswordView extends GetView<AuthController> {
     if (pw.contains(RegExp(r'[!@#\$%^&*]'))) s++;
     return s;
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPrefilledToken = widget.token != null;
+
+    return AuthPageScaffold(
+      title: 'Şifreni yeniden belirle.',
+      subtitle: 'Token bilgisiyle yeni şifreni güvenle oluşturabilirsin.',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Obx(
+              () => _controller.passwordResetSuccess.value
+                  ? _SuccessView(onLogin: () => Get.offAllNamed('/login'))
+                  : _FormView(
+                      tokenCtrl: _tokenController,
+                      passCtrl: _passController,
+                      confirmCtrl: _confirmController,
+                      passStrength: _passStrength,
+                      hasPrefilledToken: hasPrefilledToken,
+                      isLoading: _controller.isPasswordResetLoading.value,
+                      onReset: () {
+                        if (_formKey.currentState!.validate()) {
+                          _controller.resetPassword(
+                            token: _tokenController.text.trim(),
+                            newPassword: _passController.text,
+                          );
+                        }
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _FormView extends StatelessWidget {
   final TextEditingController tokenCtrl, passCtrl, confirmCtrl;
-  final RxInt passStrength;
+  final int passStrength;
   final bool hasPrefilledToken;
-  final RxBool isLoading;
+  final bool isLoading;
   final VoidCallback onReset;
 
   const _FormView({
@@ -202,8 +200,7 @@ class _FormView extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        // Şifre güç göstergesi
-        Obx(() => _PasswordStrengthBar(strength: passStrength.value)),
+        _PasswordStrengthBar(strength: passStrength),
         const SizedBox(height: 20),
 
         AuthField(
@@ -217,12 +214,10 @@ class _FormView extends StatelessWidget {
         ),
         const SizedBox(height: 32),
 
-        Obx(
-          () => PrimaryButton(
-            label: 'Şifremi Güncelle',
-            isLoading: isLoading.value,
-            onPressed: onReset,
-          ),
+        PrimaryButton(
+          label: 'Şifremi Güncelle',
+          isLoading: isLoading,
+          onPressed: onReset,
         ),
       ],
     );

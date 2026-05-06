@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../home/models/article_model.dart';
-import '../../article/views/article_detail_view.dart';
+import '../../articles/views/article_detail_view.dart';
 import '../../../core/widgets/shared_widgets.dart';
 import '../../../core/widgets/app_colors_ext.dart';
+
+const _backlogMaxWidth = 820.0;
 
 class TagArticlesView extends StatelessWidget {
   const TagArticlesView({super.key, required this.tag});
@@ -15,34 +17,41 @@ class TagArticlesView extends StatelessWidget {
     final articles = ArticleModel.mockFeed()
         .where((article) => article.tag?.toLowerCase() == tag.toLowerCase())
         .toList();
-    final visibleArticles = articles.isEmpty ? ArticleModel.mockFeed() : articles;
+    final visibleArticles = articles.isEmpty
+        ? ArticleModel.mockFeed()
+        : articles;
 
     return Scaffold(
       appBar: AppBar(title: Text('#$tag')),
-      body: ListView.separated(
-        itemCount: visibleArticles.length,
-        separatorBuilder: (_, __) => Divider(
-          height: 1,
-          indent: 20,
-          endIndent: 20,
-          color: context.appColors.border,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _backlogMaxWidth),
+          child: ListView.separated(
+            itemCount: visibleArticles.length,
+            separatorBuilder: (_, __) => Divider(
+              height: 1,
+              indent: 20,
+              endIndent: 20,
+              color: context.appColors.border,
+            ),
+            itemBuilder: (_, index) {
+              final article = visibleArticles[index];
+              return ArticleCard(
+                title: article.title,
+                subtitle: article.subtitle,
+                authorName: article.authorName,
+                authorInitials: article.authorInitials,
+                readingMinutes: article.readingMinutes,
+                tag: article.tag,
+                clapCount: article.clapCount,
+                isClapped: article.isClapped,
+                isMemberOnly: article.isMemberOnly,
+                isBookmarked: article.isBookmarked,
+                onTap: () => Get.to(() => ArticleDetailView(article: article)),
+              );
+            },
+          ),
         ),
-        itemBuilder: (_, index) {
-          final article = visibleArticles[index];
-          return ArticleCard(
-            title: article.title,
-            subtitle: article.subtitle,
-            authorName: article.authorName,
-            authorInitials: article.authorInitials,
-            readingMinutes: article.readingMinutes,
-            tag: article.tag,
-            clapCount: article.clapCount,
-            isClapped: article.isClapped,
-            isMemberOnly: article.isMemberOnly,
-            isBookmarked: article.isBookmarked,
-            onTap: () => Get.to(() => ArticleDetailView(article: article)),
-          );
-        },
       ),
     );
   }
@@ -71,38 +80,43 @@ class MembershipView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Üyelik')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(
-            'Blogify Üyelik',
-            style: Theme.of(context).textTheme.headlineMedium,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Text(
+                'Blogify Üyelik',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Sınırsız premium makale, yazar desteği ve reklamsız okuma.',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 20),
+              _PlanTile(
+                title: 'Aylık',
+                price: '₺79',
+                subtitle: 'Her ay yenilenir',
+                selected: true,
+              ),
+              const SizedBox(height: 12),
+              _PlanTile(
+                title: 'Yıllık',
+                price: '₺699',
+                subtitle: '2 ay ücretsiz',
+              ),
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: () => Get.snackbar('Üyelik', 'Ödeme akışı hazır.'),
+                icon: const Icon(Icons.credit_card),
+                label: const Text('Devam et'),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Sınırsız premium makale, yazar desteği ve reklamsız okuma.',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 20),
-          _PlanTile(
-            title: 'Aylık',
-            price: '₺79',
-            subtitle: 'Her ay yenilenir',
-            selected: true,
-          ),
-          const SizedBox(height: 12),
-          _PlanTile(
-            title: 'Yıllık',
-            price: '₺699',
-            subtitle: '2 ay ücretsiz',
-          ),
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: () => Get.snackbar('Üyelik', 'Ödeme akışı hazır.'),
-            icon: const Icon(Icons.credit_card),
-            label: const Text('Devam et'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -147,7 +161,10 @@ class _PlanTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 2),
                 Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
               ],
@@ -174,21 +191,27 @@ class FollowersView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Takipçiler')),
-      body: ListView.separated(
-        itemCount: people.length,
-        separatorBuilder: (_, __) => Divider(height: 1, color: context.appColors.border),
-        itemBuilder: (_, index) {
-          final person = people[index];
-          return ListTile(
-            leading: AuthorAvatar(initials: person.$2),
-            title: Text(person.$1),
-            subtitle: const Text('Yazar'),
-            trailing: OutlinedButton(
-              onPressed: () {},
-              child: const Text('Takip et'),
-            ),
-          );
-        },
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: ListView.separated(
+            itemCount: people.length,
+            separatorBuilder: (_, __) =>
+                Divider(height: 1, color: context.appColors.border),
+            itemBuilder: (_, index) {
+              final person = people[index];
+              return ListTile(
+                leading: AuthorAvatar(initials: person.$2),
+                title: Text(person.$1),
+                subtitle: const Text('Yazar'),
+                trailing: OutlinedButton(
+                  onPressed: () {},
+                  child: const Text('Takip et'),
+                ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }
@@ -231,29 +254,34 @@ class _ProfileEditViewState extends State<ProfileEditView> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          const Center(child: AuthorAvatar(initials: 'AY', size: 84)),
-          const SizedBox(height: 20),
-          TextField(
-            controller: nameCtrl,
-            decoration: const InputDecoration(labelText: 'Ad'),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const Center(child: AuthorAvatar(initials: 'AY', size: 84)),
+              const SizedBox(height: 20),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Ad'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: usernameCtrl,
+                decoration: const InputDecoration(labelText: 'Kullanıcı adı'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: bioCtrl,
+                maxLength: 160,
+                minLines: 3,
+                maxLines: 5,
+                decoration: const InputDecoration(labelText: 'Biyografi'),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: usernameCtrl,
-            decoration: const InputDecoration(labelText: 'Kullanıcı adı'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: bioCtrl,
-            maxLength: 160,
-            minLines: 3,
-            maxLines: 5,
-            decoration: const InputDecoration(labelText: 'Biyografi'),
-          ),
-        ],
+        ),
       ),
     );
   }

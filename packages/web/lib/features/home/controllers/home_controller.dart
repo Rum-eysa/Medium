@@ -9,12 +9,17 @@
 // ============================================================================
 
 import 'package:get/get.dart';
+import '../../../core/config/app_config.dart';
+import '../../../core/network/api_client.dart';
+import '../../../core/network/response_envelope.dart';
 import '../models/article_model.dart';
 
 enum FeedTab { forYou, following, trending }
 
 class HomeController extends GetxController {
   static HomeController get to => Get.find();
+
+  final _apiClient = ApiClient();
 
   // ── State ─────────────────────────────────────────────────────────────────
   final currentTab = FeedTab.forYou.obs;
@@ -38,11 +43,40 @@ class HomeController extends GetxController {
 
   Future<void> fetchFeed() async {
     isLoading.value = true;
-    await Future.delayed(const Duration(milliseconds: 600)); // simüle
 
-    forYouFeed.assignAll(ArticleModel.mockFeed());
-    trendingFeed.assignAll(ArticleModel.mockTrending());
-    followingFeed.assignAll(ArticleModel.mockFeed().take(3).toList());
+    try {
+      final response = await _apiClient.get(ApiEndpoints.articles);
+      final envelope = ResponseEnvelope<List<ArticleModel>>.fromJson(
+        response.data,
+        (json) {
+          if (json is List) {
+            return json
+                .map(
+                  (item) => ArticleModel.fromJson(item as Map<String, dynamic>),
+                )
+                .toList();
+          }
+          return <ArticleModel>[];
+        },
+      );
+
+      if (envelope.success && envelope.data != null) {
+        final articles = envelope.data!;
+        forYouFeed.assignAll(articles);
+        trendingFeed.assignAll(
+          articles.toList()..sort((a, b) => b.clapCount.compareTo(a.clapCount)),
+        );
+        followingFeed.assignAll(
+          articles.where((a) => a.tag != null).take(3).toList(),
+        );
+      } else {
+        throw Exception('Arka uçtan veri alınamadı');
+      }
+    } catch (_) {
+      forYouFeed.assignAll(ArticleModel.mockFeed());
+      trendingFeed.assignAll(ArticleModel.mockTrending());
+      followingFeed.assignAll(ArticleModel.mockFeed().take(3).toList());
+    }
 
     trendingTags.assignAll([
       'Flutter',

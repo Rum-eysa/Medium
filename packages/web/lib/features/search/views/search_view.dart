@@ -12,9 +12,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/search_controller.dart' as sc;
 import '../../home/models/article_model.dart';
-import '../../article/views/article_detail_view.dart';
+import '../../articles/views/article_detail_view.dart';
 import '../../../core/widgets/shared_widgets.dart';
 import '../../../core/widgets/app_colors_ext.dart';
+
+const _searchMaxWidth = 820.0;
 
 class SearchView extends StatelessWidget {
   const SearchView({super.key});
@@ -54,8 +56,12 @@ class _SearchBody extends GetView<sc.SearchController> {
       ),
       body: Obx(() {
         final query = controller.query.value;
-        if (query.isEmpty) return const _DiscoverView();
-        return const _ResultsView();
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _searchMaxWidth),
+            child: query.isEmpty ? const _DiscoverView() : const _ResultsView(),
+          ),
+        );
       }),
     );
   }
@@ -228,8 +234,9 @@ class _ArticleResults extends GetView<sc.SearchController> {
   @override
   Widget build(BuildContext context) {
     final results = controller.articleResults;
-    if (results.isEmpty)
+    if (results.isEmpty) {
       return const _EmptyResult(message: 'Makale bulunamadı');
+    }
     return ListView.separated(
       itemCount: results.length,
       separatorBuilder: (_, __) => Divider(

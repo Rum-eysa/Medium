@@ -4,7 +4,7 @@ import 'package:get_storage/get_storage.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
 import 'features/auth/controllers/auth_controller.dart';
-import 'features/article/controllers/article_controller.dart';
+import 'features/articles/controllers/article_controller.dart';
 import 'features/home/controllers/home_controller.dart';
 import 'features/auth/views/login_view.dart';
 import 'features/auth/views/register_view.dart';
@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
         themeMode: ThemeController.to.mode,
-        home: const AuthWrapper(),
+        home: const HomeView(),
         getPages: [
           GetPage(name: '/login', page: () => const LoginView()),
           GetPage(name: '/register', page: () => const RegisterView()),
@@ -46,10 +46,16 @@ class MyApp extends StatelessWidget {
             name: '/forgot-password',
             page: () => const ForgotPasswordView(),
           ),
-          GetPage(name: '/reset-password', page: () => const ResetPasswordView()),
+          GetPage(
+            name: '/reset-password',
+            page: () => const ResetPasswordView(),
+          ),
           GetPage(name: '/home', page: () => const HomeView()),
           GetPage(name: '/editor', page: () => const EditorView()),
-          GetPage(name: '/notifications', page: () => const NotificationsView()),
+          GetPage(
+            name: '/notifications',
+            page: () => const NotificationsView(),
+          ),
           GetPage(
             name: '/article/:id',
             page: () =>
@@ -82,10 +88,6 @@ class AuthWrapper extends GetView<AuthController> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(
-      () => controller.isAuthenticated.value
-          ? const HomeView()
-          : const LoginView(),
-    );
+    return const HomeView();
   }
 }

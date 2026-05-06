@@ -11,9 +11,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../auth/controllers/auth_controller.dart';
 import '../controllers/profile_controller.dart';
 import '../../home/models/article_model.dart';
-import '../../article/views/article_detail_view.dart';
+import '../../articles/views/article_detail_view.dart';
 import '../../../core/widgets/shared_widgets.dart';
 import '../../../core/widgets/app_colors_ext.dart';
 import '../../../core/theme/theme_controller.dart';
@@ -41,8 +42,9 @@ class _ProfileBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tabCount = controller.isOwnProfile ? 4 : 3;
     return DefaultTabController(
-      length: 3,
+      length: tabCount,
       child: Scaffold(
         body: NestedScrollView(
           headerSliverBuilder: (_, innerBoxIsScrolled) => [
@@ -71,6 +73,28 @@ class _ProfileBody extends StatelessWidget {
                     onPressed: () => Get.toNamed('/profile/edit'),
                     tooltip: 'Profili düzenle',
                   ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, size: 20),
+                    color: context.appColors.surface,
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'logout',
+                        child: Text('Çıkış Yap'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'logout_all',
+                        child: Text('Tüm cihazlardan çıkış'),
+                      ),
+                    ],
+                    onSelected: (value) {
+                      final auth = Get.find<AuthController>();
+                      if (value == 'logout_all') {
+                        auth.logoutAll();
+                      } else {
+                        auth.logout();
+                      }
+                    },
+                  ),
                 ],
                 IconButton(
                   icon: const Icon(Icons.more_horiz, size: 20),
@@ -86,19 +110,19 @@ class _ProfileBody extends StatelessWidget {
           body: CustomScrollView(
             slivers: [
               // ── Profil header ──────────────────────────────────────────────
-              SliverToBoxAdapter(
-                child: _ProfileHeader(ctrl: controller),
-              ),
+              SliverToBoxAdapter(child: _ProfileHeader(ctrl: controller)),
 
               // ── Tab bar ────────────────────────────────────────────────────
               SliverPersistentHeader(
                 pinned: true,
                 delegate: _StickyTabBarDelegate(
                   TabBar(
-                    tabs: const [
-                      Tab(text: 'Yazılar'),
-                      Tab(text: 'En Popüler'),
-                      Tab(text: 'Kayıtlar'),
+                    tabs: [
+                      const Tab(text: 'Yazılar'),
+                      const Tab(text: 'En Popüler'),
+                      const Tab(text: 'Kayıtlar'),
+                      if (controller.isOwnProfile)
+                        const Tab(text: 'İstatistikler'),
                     ],
                   ),
                 ),
@@ -111,6 +135,7 @@ class _ProfileBody extends StatelessWidget {
                     _ArticleTab(articles: ArticleModel.mockFeed()),
                     _ArticleTab(articles: ArticleModel.mockTrending()),
                     _SavedTab(),
+                    if (controller.isOwnProfile) const _StatsTab(),
                   ],
                 ),
               ),
@@ -195,6 +220,10 @@ class _ProfileHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
+
+          // Kendi profili ise eylem kutusu
+          if (ctrl.isOwnProfile) const _ProfileActionsCard(),
+          if (ctrl.isOwnProfile) const SizedBox(height: 16),
 
           // Kendi profili — istatistikler banner — US-021
           if (ctrl.isOwnProfile) _StatsCard(),
@@ -284,7 +313,333 @@ class _StatsCard extends StatelessWidget {
   }
 }
 
+// ── Profil aksiyon kartı ───────────────────────────────────────────────────
+
+class _ProfileActionsCard extends StatelessWidget {
+  const _ProfileActionsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: context.appColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.appColors.border, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Hesap menüsü',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          _ProfileActionTile(
+            label: 'Ayarlar',
+            subtitle: 'Profilini ve hesap tercihlerini düzenle',
+            icon: Icons.settings_outlined,
+            onTap: () => Get.toNamed('/profile/edit'),
+          ),
+          _ProfileActionTile(
+            label: 'Yardım',
+            subtitle: 'Sık sorulan sorular ve destek',
+            icon: Icons.help_outline,
+            onTap: () {
+              Get.snackbar(
+                'Yardım',
+                'Yardım sayfası yakında eklenecek.',
+                snackPosition: SnackPosition.BOTTOM,
+              );
+            },
+          ),
+          _ProfileActionTile(
+            label: 'Üyelik ol',
+            subtitle: 'Medium üyelik ayrıcalıklarını gör',
+            icon: Icons.star_border,
+            onTap: () => Get.toNamed('/membership'),
+          ),
+          _ProfileActionTile(
+            label: 'Partner program',
+            subtitle: 'Ortaklık tekliflerine başvur',
+            icon: Icons.handshake_outlined,
+            onTap: () {
+              Get.snackbar(
+                'Partner Program',
+                'Partner programı sayfası yakında aktif olacak.',
+                snackPosition: SnackPosition.BOTTOM,
+              );
+            },
+          ),
+          _ProfileActionTile(
+            label: 'Çıkış Yap',
+            subtitle:
+                'Tüm cihazlardan çıkış yapabilir veya hesabı kapatabilirsin',
+            icon: Icons.logout,
+            onTap: () {
+              final auth = Get.find<AuthController>();
+              auth.logout();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileActionTile extends StatelessWidget {
+  const _ProfileActionTile({
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: context.appColors.border, width: 0.5),
+              color: context.appColors.bg,
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: context.appColors.text, size: 22),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: context.appColors.text,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: context.appColors.textSub,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ── Follow button ─────────────────────────────────────────────────────────────
+
+class _StatsTab extends StatelessWidget {
+  const _StatsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'İstatistikler',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: context.appColors.text,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Yayın performansını ve okutma davranışını buradan takip edebilirsin.',
+            style: TextStyle(fontSize: 14, color: context.appColors.textSub),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: context.appColors.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: context.appColors.border, width: 0.5),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Mayıs 2026',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'Güncellenme saatlik',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.appColors.textSub,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  height: 180,
+                  decoration: BoxDecoration(
+                    color: context.appColors.bg,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Grafik yer tutucu',
+                      style: TextStyle(color: context.appColors.textSub),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: const [
+                    _MiniMetric(title: 'Presentations', value: '0'),
+                    _MiniMetric(title: 'Views', value: '0'),
+                    _MiniMetric(title: 'Reads', value: '0'),
+                    _MiniMetric(title: 'Followers', value: '0'),
+                    _MiniMetric(title: 'Subscribers', value: '0'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 26),
+          _StatsSectionCard(
+            title: 'Yayına hazır hikayeler',
+            value: '0',
+            details:
+                'Henüz yayınlanmaya hazır bir yazın yok. “Yaz” butonuna tıklayarak başlayabilirsin.',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniMetric extends StatelessWidget {
+  const _MiniMetric({required this.title, required this.value});
+  final String title;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 140,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: context.appColors.bg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.appColors.border, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: context.appColors.text,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: TextStyle(fontSize: 12, color: context.appColors.textSub),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatsSectionCard extends StatelessWidget {
+  const _StatsSectionCard({
+    required this.title,
+    required this.value,
+    required this.details,
+  });
+  final String title;
+  final String value;
+  final String details;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: context.appColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.appColors.border, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: context.appColors.text,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w700,
+              color: context.appColors.text,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            details,
+            style: TextStyle(
+              fontSize: 13,
+              color: context.appColors.textSub,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _FollowButton extends StatelessWidget {
   const _FollowButton({required this.isFollowing, required this.onTap});
@@ -327,7 +682,7 @@ class _ArticleTab extends StatelessWidget {
     return ListView.separated(
       padding: EdgeInsets.zero,
       itemCount: articles.length,
-      separatorBuilder: (_, __) => Divider(
+      separatorBuilder: (context, index) => Divider(
         height: 1,
         indent: 20,
         endIndent: 20,

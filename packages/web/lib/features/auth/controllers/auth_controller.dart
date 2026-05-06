@@ -14,6 +14,7 @@ class AuthController extends GetxController {
   final currentUser = Rx<UserModel?>(null);
   final isAuthenticated = false.obs;
   final resetEmailSent = false.obs;
+  final resetToken = RxnString();
   final passwordResetSuccess = false.obs;
 
   @override
@@ -101,6 +102,7 @@ class AuthController extends GetxController {
 
   Future<void> forgotPassword({required String email}) async {
     try {
+      resetEmailSent.value = false;
       isPasswordResetLoading.value = true;
       final response = await _apiClient.post(
         ApiEndpoints.forgotPassword,
@@ -112,11 +114,12 @@ class AuthController extends GetxController {
         (json) => json as Map<String, dynamic>,
       );
 
-      if (envelope.success) {
-        resetEmailSent.value = true;
-      }
+      resetEmailSent.value = envelope.success;
+      resetToken.value = envelope.data?['dev_token'] as String?;
     } catch (e) {
       // ErrorInterceptor handle ediyor
+      resetEmailSent.value = false;
+      resetToken.value = null;
     } finally {
       isPasswordResetLoading.value = false;
     }
@@ -182,6 +185,7 @@ class AuthController extends GetxController {
     currentUser.value = null;
     isAuthenticated.value = false;
     resetEmailSent.value = false;
+    resetToken.value = null;
     passwordResetSuccess.value = false;
     Get.offAllNamed('/login');
   }

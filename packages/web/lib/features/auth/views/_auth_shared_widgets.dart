@@ -3,6 +3,89 @@
 
 import 'package:flutter/material.dart';
 
+class AuthPageScaffold extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Widget child;
+  final Widget? footer;
+  final bool showLogo;
+
+  const AuthPageScaffold({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.child,
+    this.footer,
+    this.showLogo = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF09090F),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF12121C),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: const Color(0xFF2A2A3A), width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color.fromRGBO(0, 0, 0, 0.22),
+                      blurRadius: 32,
+                      offset: const Offset(0, 16),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (showLogo) ...[
+                      const AppLogo(),
+                      const SizedBox(height: 28),
+                    ],
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Color(0xFFF0EFF8),
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                        height: 1.12,
+                        fontFamily: 'Georgia',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: Color(0xFF8B8A9B),
+                        fontSize: 15,
+                        height: 1.6,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    child,
+                    if (footer != null) ...[
+                      const SizedBox(height: 24),
+                      footer!,
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Auth Text Field ──────────────────────────────────────────────────────────
 
 class AuthField extends StatefulWidget {

@@ -207,6 +207,26 @@ class AppTheme {
         ),
       ),
 
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: text,
+          foregroundColor: bg,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100),
+          ),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+      ),
+
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: text,
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+      ),
+
       // ── Outlined button ───────────────────────────────────────────────────
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
@@ -230,6 +250,28 @@ class AppTheme {
           highlightColor: Colors.transparent,
           splashFactory: NoSplash.splashFactory,
         ),
+      ),
+
+      listTileTheme: ListTileThemeData(
+        iconColor: textSub,
+        textColor: text,
+        titleTextStyle: TextStyle(
+          color: text,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+        subtitleTextStyle: TextStyle(color: textSub, fontSize: 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      ),
+
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightText,
+        contentTextStyle: TextStyle(
+          color: isDark ? AppColors.darkText : Colors.white,
+          fontSize: 13,
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
 
       // ── Chip ─────────────────────────────────────────────────────────────
